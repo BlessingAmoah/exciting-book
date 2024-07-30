@@ -1,0 +1,76 @@
+import React, { useState, useEffect } from 'react';
+import { TextField, Button, Typography, List, ListItem, ListItemText } from '@mui/material';
+import axios from 'axios';
+
+const ManageCollections = ({ token }) => {
+  const [collections, setCollections] = useState([]);
+  const [newCollection, setNewCollection] = useState('');
+  const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    const fetchCollections = async () => {
+      try {
+        const response = await axios.get('/api/collections', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setCollections(response.data);
+      } catch (error) {
+        setMessage('Failed to fetch collections.');
+      }
+    };
+    fetchCollections();
+  }, [token]);
+
+  const handleAddCollection = async () => {
+    try {
+      await axios.post('http://localhost:5002/api/collections', { name: newCollection }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setMessage('Collection added successfully.');
+      setNewCollection('');
+      // Refresh collections list
+      const response = await axios.get('/api/collections', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setCollections(response.data);
+    } catch (error) {
+      setMessage('Failed to add collection.');
+    }
+  };
+
+  const handleRemoveCollection = async (collectionId) => {
+    try {
+      await axios.delete(`/api/collections/${collectionId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setMessage('Collection removed successfully.');
+      // Refresh collections list
+      setCollections(collections.filter(collection => collection.id !== collectionId));
+    } catch (error) {
+      setMessage('Failed to remove collection.');
+    }
+  };
+
+  return (
+    <div>
+      <Typography variant="h4">Manage Collections</Typography>
+      <TextField
+        label="Collection Name"
+        value={newCollection}
+        onChange={(e) => setNewCollection(e.target.value)}
+      />
+      <Button onClick={handleAddCollection}>Add Collection</Button>
+      <List>
+        {collections.map(collection => (
+          <ListItem key={collection.id}>
+            <ListItemText primary={collection.name} />
+            <Button onClick={() => handleRemoveCollection(collection.id)}>Remove</Button>
+          </ListItem>
+        ))}
+      </List>
+      {message && <Typography>{message}</Typography>}
+    </div>
+  );
+};
+
+export default ManageCollections;
